@@ -1,12 +1,44 @@
 
+# if (Halide_TARGET MATCHES "NEVERMATCH")
+#   add_wasm_library(common_halide SRCS common_halide.cpp
+#     INCLUDES
+#     $<BUILD_INTERFACE:${hannk_SOURCE_DIR}>
+#     "${CMAKE_SOURCE_DIR}/../../build-wasm/include"
+#     "${CMAKE_SOURCE_DIR}/../../include"
+#     )
+# else ()
 add_library(common_halide STATIC common_halide.cpp)
 target_link_libraries(common_halide PRIVATE Halide::Halide)
 target_include_directories(common_halide PUBLIC $<BUILD_INTERFACE:${hannk_SOURCE_DIR}>)
+# endif ()
 
 set(_HANNK_HALIDE_TARGETS "")
 
 # Function to reduce boilerplate
 function(_add_hannk_halide_library)
+  if (Halide_TARGET MATCHES "NEVERMATCH")
+    set(options)
+    set(oneValueArgs TARGET GENERATOR_NAME)
+    set(multiValueArgs SRCS GENERATOR_ARGS GENERATOR_DEPS FEATURES)
+    cmake_parse_arguments(args "" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    add_wasm_library(${args_TARGET}.generator SRCS ${args_SRCS}
+      DEPS common_halide
+      INCLUDES
+      $<BUILD_INTERFACE:${hannk_SOURCE_DIR}>
+      "${CMAKE_SOURCE_DIR}/../../include"
+      )
+    # target_link_libraries(${args_TARGET}.generator PRIVATE ${args_GENERATOR_DEPS} common_halide Halide::Generator)
+    # target_include_directories(${args_TARGET}.generator PUBLIC $<BUILD_INTERFACE:${hannk_SOURCE_DIR}>)
+
+    add_halide_library(${args_TARGET}.wasm FROM ${args_TARGET}.generator
+                       NAMESPACE hannk
+                       GENERATOR ${args_GENERATOR_NAME}
+                       FEATURES large_buffers c_plus_plus_name_mangling ${args_FEATURES}
+                       PARAMS ${args_GENERATOR_ARGS})
+
+    set(_HANNK_HALIDE_TARGETS ${_HANNK_HALIDE_TARGETS} ${args_TARGET} PARENT_SCOPE)
+else ()
     set(options)
     set(oneValueArgs TARGET GENERATOR_NAME)
     set(multiValueArgs SRCS GENERATOR_ARGS GENERATOR_DEPS FEATURES)
@@ -23,6 +55,7 @@ function(_add_hannk_halide_library)
                        PARAMS ${args_GENERATOR_ARGS})
 
     set(_HANNK_HALIDE_TARGETS ${_HANNK_HALIDE_TARGETS} ${args_TARGET} PARENT_SCOPE)
+endif ()
 endfunction()
 
 _add_hannk_halide_library(
@@ -160,6 +193,13 @@ _add_hannk_halide_library(
         GENERATOR_ARGS
         GENERATOR_DEPS)
 
+if (Halide_TARGET MATCHES "wasm")
+# add_wasm_library(op_impls
+#   DEPS ${_HANNK_HALIDE_TARGETS}
+#   INCLUDES $<BUILD_INTERFACE:${hannk_BINARY_DIR}>
+#   )
+else ()
 add_library(op_impls INTERFACE)
 target_link_libraries(op_impls INTERFACE ${_HANNK_HALIDE_TARGETS})
 target_include_directories(op_impls INTERFACE $<BUILD_INTERFACE:${hannk_BINARY_DIR}>)
+endif ()

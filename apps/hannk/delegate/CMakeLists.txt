@@ -1,3 +1,13 @@
+if (Halide_TARGET MATCHES "wasm")
+  add_wasm_library("hannk_delegate"
+    SRCS hannk_delegate.cpp
+    INCLUDES
+    $<BUILD_INTERFACE:${hannk_SOURCE_DIR}>
+    "${CMAKE_BINARY_DIR}/_deps/tflite-src/"
+    "${CMAKE_SOURCE_DIR}/../../src/runtime"
+    )
+
+else ()
 # --------------- registrar (static-library) delegate
 
 add_library(hannk_delegate STATIC
@@ -50,3 +60,4 @@ endif()
 # Give it the name that we already use elsewhere ("lib" and ".so" will be added)
 set_target_properties(hannk_delegate_external PROPERTIES OUTPUT_NAME "HannkDelegate")
 
+endif ()

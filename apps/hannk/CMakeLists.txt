@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(hannk)
+include("../../cmake/Wasm.cmake")
 
 # We need to set this for some of the subprojects pulled in by TFLite (eg flatbuffers)
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
@@ -36,6 +37,24 @@ add_subdirectory(tflite)
 add_subdirectory(util)
 
 # Benchmarking executable
+if (Halide_TARGET MATCHES "wasm")
+  add_wasm_executable(benchmark
+    SRCS
+      benchmark.cpp
+    DEPS
+      tflite/tflite_parser
+      interpreter/interpreter
+      util/error_util
+      util/hannk_log_stderr
+                            INCLUDES
+                            "${CMAKE_BINARY_DIR}/include"
+                            "${CMAKE_SOURCE_DIR}/../../test/common"
+                            "${CMAKE_SOURCE_DIR}/../../tools"
+                            "${CMAKE_SOURCE_DIR}/../../src/runtime"
+                            "${CMAKE_SOURCE_DIR}"
+                            "${CMAKE_CURRENT_BINARY_DIR}")
+ # add_executable(benchmark benchmark.cpp)
+else ()
 add_executable(benchmark benchmark.cpp)
 target_link_libraries(benchmark PRIVATE
                       tflite_parser
@@ -45,7 +64,6 @@ target_link_libraries(benchmark PRIVATE
                       hannk_log_stderr
                       Halide::Tools  # for halide_benchmark.h
                       Halide::Runtime)
-
 add_executable(compare_vs_tflite compare_vs_tflite.cpp)
 target_link_libraries(compare_vs_tflite PRIVATE
                       hannk_log_stderr
@@ -53,6 +71,8 @@ target_link_libraries(compare_vs_tflite PRIVATE
                       Halide::Runtime)
 target_include_directories(compare_vs_tflite
                            PUBLIC $<BUILD_INTERFACE:${hannk_SOURCE_DIR}>)
+endif ()
+
 
 # Tests
 file(GLOB TEST_FILES CONFIGURE_DEPENDS "test/*/*")

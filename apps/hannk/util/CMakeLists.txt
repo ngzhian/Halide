@@ -1,3 +1,26 @@
+include("../../../cmake/Wasm.cmake")
+
+if (Halide_TARGET MATCHES "wasm")
+  add_wasm_library(error_util
+    SRCS error_util.cpp
+    INCLUDES
+    $<BUILD_INTERFACE:${hannk_SOURCE_DIR}>
+    "${CMAKE_SOURCE_DIR}/../../src/runtime")
+
+  add_wasm_library(hannk_log_stderr
+    SRCS hannk_log_stderr.cpp
+    INCLUDES
+    $<BUILD_INTERFACE:${hannk_SOURCE_DIR}>
+    "${CMAKE_SOURCE_DIR}/../../src/runtime")
+
+  add_wasm_library(hannk_log_tflite
+    SRCS hannk_log_tflite.cpp
+    INCLUDES
+    "${CMAKE_BINARY_DIR}/_deps/tflite-src/"
+    $<BUILD_INTERFACE:${hannk_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${tflite_SOURCE_DIR}>
+    "${CMAKE_SOURCE_DIR}/../../src/runtime")
+else()
 add_library(error_util STATIC
             error_util.cpp)
 target_include_directories(error_util PUBLIC
@@ -50,3 +73,4 @@ target_link_libraries(model_runner PRIVATE
                       Halide::Tools  # for halide_benchmark.h
                       Halide::Runtime
                       tensorflowlite_headers)
+endif ()

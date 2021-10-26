@@ -1,4 +1,5 @@
 include(FetchContent)
+include("../../../cmake/Wasm.cmake")
 
 set(TFLITE_TAG "v${TFLITE_VERSION}")
 
@@ -66,6 +67,18 @@ target_include_directories(tensorflowlite_headers INTERFACE
                            $<BUILD_INTERFACE:${tflite_SOURCE_DIR}>)
 
 # ----------------
+if (Halide_TARGET MATCHES "wasm")
+  add_wasm_library("tflite_parser"
+    SRCS tflite_parser.cpp
+    INCLUDES
+    $<BUILD_INTERFACE:${FlatBuffers_SOURCE_DIR}/include>
+    "${CMAKE_SOURCE_DIR}/../../src/runtime"
+    $<BUILD_INTERFACE:${hannk_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${hannk_BINARY_DIR}>
+    $<BUILD_INTERFACE:${tflite_SOURCE_DIR}>
+    )
+
+else ()
 add_library(tflite_parser STATIC tflite_parser.cpp)
 target_include_directories(tflite_parser
                            PUBLIC $<BUILD_INTERFACE:${hannk_SOURCE_DIR}>
@@ -76,3 +89,4 @@ target_include_directories(tflite_parser
 target_include_directories(tflite_parser BEFORE
                            PRIVATE $<BUILD_INTERFACE:${FlatBuffers_SOURCE_DIR}/include>)
 target_link_libraries(tflite_parser PRIVATE Halide::Runtime)
+endif ()
